@@ -55,7 +55,26 @@ export async function requireDoctorApproved(req, res, next) {
     [req.user.id]
   );
 
-  const profile = doctorProfileResult.rows[0];
+  let profile = doctorProfileResult.rows[0];
+
+  // Self-heal: If user account has been verified by Admin, ensure doctor profile matches
+  if ((!profile || profile.approval_status !== 'verified') && req.user.status === 'verified') {
+    if (!profile) {
+      const insRes = await query(
+        `INSERT INTO doctor_profiles (user_id, medical_license_number, hospital_name, hospital_city, approval_status, reviewed_at)
+         VALUES ($1, 'Verified by Admin', 'Affiliated Hospital', '', 'verified', NOW())
+         RETURNING *`,
+        [req.user.id]
+      );
+      profile = insRes.rows[0];
+    } else {
+      const updRes = await query(
+        `UPDATE doctor_profiles SET approval_status = 'verified', reviewed_at = NOW() WHERE id = $1 RETURNING *`,
+        [profile.id]
+      );
+      profile = updRes.rows[0] || { ...profile, approval_status: 'verified' };
+    }
+  }
 
   if (!profile || profile.approval_status !== 'verified') {
     return res.status(403).json({

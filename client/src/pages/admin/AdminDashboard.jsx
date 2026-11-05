@@ -9,7 +9,6 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
-  RotateCw,
 } from 'lucide-react';
 import { StatusBadge } from '../../components/common/StatusBadge';
 
@@ -17,7 +16,6 @@ export const AdminDashboard = () => {
   const { user } = useAuth();
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
   // Reject modal state
@@ -28,7 +26,6 @@ export const AdminDashboard = () => {
   const fetchDoctors = async (isBackground = false) => {
     try {
       if (!isBackground) setLoading(true);
-      else setIsRefreshing(true);
       const res = await api.getAdminDoctors();
       setDoctors(res.doctors || []);
       setError(null);
@@ -36,14 +33,13 @@ export const AdminDashboard = () => {
       if (!isBackground) setError(err.message || 'Failed to fetch doctor accounts');
     } finally {
       if (!isBackground) setLoading(false);
-      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchDoctors(false);
 
-    // Real-time synchronization: poll every 4 seconds for newly registered doctors
+    // Real-time synchronization: poll silently in background every 4 seconds
     const interval = setInterval(() => {
       fetchDoctors(true);
     }, 4000);
@@ -123,42 +119,6 @@ export const AdminDashboard = () => {
               </p>
             </div>
           </div>
-
-          <div className="flex items-center gap-3">
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                color: 'var(--color-slate-600)',
-                backgroundColor: 'var(--color-slate-100)',
-                padding: '6px 12px',
-                borderRadius: 'var(--radius-full)',
-              }}
-            >
-              <span
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: '#10b981',
-                  boxShadow: '0 0 6px #10b981',
-                  display: 'inline-block',
-                }}
-              />
-              Live Sync (4s)
-            </div>
-
-            <button
-              onClick={() => fetchDoctors(true)}
-              className="btn btn-outline btn-sm flex items-center gap-2"
-              disabled={isRefreshing}
-            >
-              <RotateCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
-              {isRefreshing ? 'Syncing...' : 'Refresh'}
-            </button>
-          </div>
         </div>
       </div>
 
@@ -225,14 +185,14 @@ export const AdminDashboard = () => {
                           <div className="flex gap-2" style={{ justifyContent: 'flex-end' }}>
                             <button
                               className="btn btn-success btn-sm"
-                              onClick={() => handleApprove(doc.id)}
+                              onClick={() => handleApprove(doc.user_id || doc.id)}
                               disabled={actionLoading}
                             >
                               <Check size={14} /> Approve
                             </button>
                             <button
                               className="btn btn-danger btn-sm"
-                              onClick={() => setRejectingDoctorId(doc.id)}
+                              onClick={() => setRejectingDoctorId(doc.user_id || doc.id)}
                               disabled={actionLoading}
                             >
                               <X size={14} /> Reject

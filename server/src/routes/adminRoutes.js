@@ -45,34 +45,36 @@ router.post('/approve-doctor/:id', async (req, res) => {
   try {
     const doctorId = req.params.id;
 
-    // Update doctor profile to verified
-    const updateProfileRes = await query(
+    // Resolve target user_id (handles doctorId passed as user_id or profile id)
+    let targetUserId = doctorId;
+    const profLookup = await query('SELECT * FROM doctor_profiles WHERE id = $1', [doctorId]);
+    if (profLookup.rows.length > 0) {
+      targetUserId = profLookup.rows[0].user_id;
+    }
+
+    // 1. Update user status in users table
+    await query("UPDATE users SET status = 'verified' WHERE id = $1", [targetUserId]);
+
+    // 2. Update doctor profile to verified
+    let updateProfileRes = await query(
       `UPDATE doctor_profiles
        SET approval_status = 'verified', rejection_reason = NULL, reviewed_at = NOW()
-       WHERE id = $1 OR user_id = $1
+       WHERE user_id = $1 OR id = $1
        RETURNING *`,
-      [doctorId]
+      [targetUserId]
     );
 
     let doctorProfile = updateProfileRes.rows[0];
 
     if (!doctorProfile) {
-      // Find doctor user by id
-      const userRes = await query('SELECT * FROM users WHERE id = $1 AND role = $2', [doctorId, 'doctor']);
-      if (userRes.rows.length === 0) {
-        return res.status(404).json({ error: 'Doctor account not found.' });
-      }
       const insRes = await query(
         `INSERT INTO doctor_profiles (user_id, medical_license_number, hospital_name, hospital_city, approval_status, reviewed_at)
          VALUES ($1, 'Verified by Admin', 'Affiliated Hospital', '', 'verified', NOW())
          RETURNING *`,
-        [doctorId]
+        [targetUserId]
       );
       doctorProfile = insRes.rows[0];
     }
-
-    // Also update the underlying user status to verified
-    await query("UPDATE users SET status = 'verified' WHERE id = $1", [doctorProfile.user_id]);
 
     res.json({
       success: true,
@@ -94,20 +96,36 @@ router.post('/reject-doctor/:id', async (req, res) => {
       return res.status(400).json({ error: 'Rejection reason is required to reject a doctor account.' });
     }
 
+    // Resolve target user_id
+    let targetUserId = doctorId;
+    const profLookup = await query('SELECT * FROM doctor_profiles WHERE id = $1', [doctorId]);
+    if (profLookup.rows.length > 0) {
+      targetUserId = profLookup.rows[0].user_id;
+    }
+
+    // 1. Update user status in users table
+    await query("UPDATE users SET status = 'rejected' WHERE id = $1", [targetUserId]);
+
+    // 2. Update doctor profile to rejected
     const updateProfileRes = await query(
       `UPDATE doctor_profiles
        SET approval_status = 'rejected', rejection_reason = $1, reviewed_at = NOW()
-       WHERE id = $2 OR user_id = $2
+       WHERE user_id = $2 OR id = $2
        RETURNING *`,
-      [rejection_reason.trim(), doctorId]
+      [rejection_reason.trim(), targetUserId]
     );
 
-    if (updateProfileRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Doctor profile not found.' });
-    }
+    let doctorProfile = updateProfileRes.rows[0];
 
-    const doctorProfile = updateProfileRes.rows[0];
-    await query("UPDATE users SET status = 'rejected' WHERE id = $1", [doctorProfile.user_id]);
+    if (!doctorProfile) {
+      const insRes = await query(
+        `INSERT INTO doctor_profiles (user_id, medical_license_number, hospital_name, hospital_city, approval_status, rejection_reason, reviewed_at)
+         VALUES ($1, 'Under Review', 'Affiliated Hospital', '', 'rejected', $2, NOW())
+         RETURNING *`,
+        [targetUserId, rejection_reason.trim()]
+      );
+      doctorProfile = insRes.rows[0];
+    }
 
     res.json({
       success: true,

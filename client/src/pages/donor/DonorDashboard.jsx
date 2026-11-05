@@ -24,7 +24,6 @@ export const DonorDashboard = () => {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
   // Document viewer modal
@@ -47,7 +46,6 @@ export const DonorDashboard = () => {
   const fetchDashboard = async (isBackground = false) => {
     try {
       if (!isBackground) setLoading(true);
-      else setIsRefreshing(true);
       const res = await api.getDonorDashboard();
       setData(res);
       setError(null);
@@ -55,14 +53,13 @@ export const DonorDashboard = () => {
       if (!isBackground) setError(err.message || 'Failed to load donor dashboard');
     } finally {
       if (!isBackground) setLoading(false);
-      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchDashboard(false);
 
-    // Real-time synchronization: poll every 4 seconds
+    // Real-time synchronization: poll silently in background every 4 seconds
     const interval = setInterval(() => {
       fetchDashboard(true);
     }, 4000);
@@ -192,47 +189,14 @@ export const DonorDashboard = () => {
             </div>
           </div>
 
-          {/* Availability Toggle, Live Sync & Cross-Role Blood Request Button */}
+          {/* Availability Toggle & Cross-Role Blood Request Button */}
           <div className="flex items-center gap-3">
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                color: 'var(--color-slate-600)',
-                backgroundColor: 'var(--color-slate-100)',
-                padding: '6px 12px',
-                borderRadius: 'var(--radius-full)',
-              }}
-            >
-              <span
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: '#10b981',
-                  boxShadow: '0 0 6px #10b981',
-                  display: 'inline-block',
-                }}
-              />
-              Live Sync (4s)
-            </div>
-
-            <button
-              onClick={() => fetchDashboard(true)}
-              className="btn btn-outline btn-sm"
-              disabled={isRefreshing}
-            >
-              {isRefreshing ? 'Syncing...' : 'Refresh'}
-            </button>
-
             <button
               onClick={handleToggleAvailability}
               className={`btn ${donorProfile?.is_available ? 'btn-success' : 'btn-outline'}`}
               style={{ fontSize: '13px' }}
             >
-              {donorProfile?.is_available ? '🟢 Live: Available to Donate' : '⚪ Paused: Unavailable'}
+              {donorProfile?.is_available ? '🟢 Available to Donate' : '⚪ Paused: Unavailable'}
             </button>
 
             {/* Cross-role: Donor requesting blood */}

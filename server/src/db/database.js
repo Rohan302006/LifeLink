@@ -566,8 +566,16 @@ export async function query(sql, params = []) {
       profile = Array.from(memoryStore.doctorProfiles.values()).find(p => p.id === id || p.user_id === id);
     }
     if (profile) {
-      profile.approval_status = params[0];
-      profile.rejection_reason = params[1] || null;
+      if (lower.includes("approval_status = 'verified'") || params[0] === 'verified') {
+        profile.approval_status = 'verified';
+        profile.rejection_reason = null;
+      } else if (lower.includes("approval_status = 'rejected'") || params[0] === 'rejected') {
+        profile.approval_status = 'rejected';
+        profile.rejection_reason = params[1] || 'Rejected by Administrator';
+      } else {
+        profile.approval_status = params[0];
+        profile.rejection_reason = params[1] || null;
+      }
       profile.reviewed_at = new Date().toISOString();
       return formatResult([profile]);
     }

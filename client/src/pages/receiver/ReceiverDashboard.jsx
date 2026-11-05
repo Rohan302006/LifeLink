@@ -22,7 +22,6 @@ export const ReceiverDashboard = () => {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
   // Document viewer modal
@@ -39,7 +38,6 @@ export const ReceiverDashboard = () => {
   const fetchDashboard = async (isBackground = false) => {
     try {
       if (!isBackground) setLoading(true);
-      else setIsRefreshing(true);
       const res = await api.getReceiverDashboard();
       setData(res);
       setError(null);
@@ -47,14 +45,13 @@ export const ReceiverDashboard = () => {
       if (!isBackground) setError(err.message || 'Failed to load receiver dashboard');
     } finally {
       if (!isBackground) setLoading(false);
-      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchDashboard(false);
 
-    // Real-time synchronization: poll every 4 seconds
+    // Real-time synchronization: poll silently in background every 4 seconds
     const interval = setInterval(() => {
       fetchDashboard(true);
     }, 4000);
@@ -136,39 +133,6 @@ export const ReceiverDashboard = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                color: 'var(--color-slate-600)',
-                backgroundColor: 'var(--color-slate-100)',
-                padding: '6px 12px',
-                borderRadius: 'var(--radius-full)',
-              }}
-            >
-              <span
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: '#10b981',
-                  boxShadow: '0 0 6px #10b981',
-                  display: 'inline-block',
-                }}
-              />
-              Live Sync (4s)
-            </div>
-
-            <button
-              onClick={() => fetchDashboard(true)}
-              className="btn btn-outline btn-sm"
-              disabled={isRefreshing}
-            >
-              {isRefreshing ? 'Syncing...' : 'Refresh'}
-            </button>
-
             {/* Primary Action: Create Request */}
             <button
               onClick={() => setIsRequestModalOpen(true)}

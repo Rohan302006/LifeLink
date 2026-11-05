@@ -43,7 +43,6 @@ export const DoctorDashboard = () => {
   const [rejectionTarget, setRejectionTarget] = useState(null); // { type: 'doc' | 'date' | 'request', id, userId }
   const [rejectionReason, setRejectionReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Request approval notes
   const [doctorNotes, setDoctorNotes] = useState('');
@@ -51,19 +50,24 @@ export const DoctorDashboard = () => {
   const fetchDoctorData = async (isBackground = false) => {
     try {
       if (!isBackground) setLoading(true);
-      else setIsRefreshing(true);
       setError(null);
 
       // Check current user's doctor profile
       const meRes = await api.getCurrentUser();
-      const currentProfile = meRes.doctorProfile || {
-        medical_license_number: 'Under Review',
-        hospital_name: 'Affiliated Hospital',
-        approval_status: meRes.user?.status || 'pending',
-      };
+      const isUserVerified = meRes.user?.status === 'verified';
+      const currentProfile = meRes.doctorProfile
+        ? {
+            ...meRes.doctorProfile,
+            approval_status: isUserVerified ? 'verified' : meRes.doctorProfile.approval_status,
+          }
+        : {
+            medical_license_number: 'Under Review',
+            hospital_name: 'Affiliated Hospital',
+            approval_status: isUserVerified ? 'verified' : 'pending',
+          };
       setDoctorProfile(currentProfile);
 
-      if (currentProfile?.approval_status === 'verified') {
+      if (currentProfile?.approval_status === 'verified' || isUserVerified) {
         const [donorsRes, receiversRes, requestsRes] = await Promise.all([
           api.getDoctorDonors().catch(() => ({ donors: [] })),
           api.getDoctorReceivers().catch(() => ({ receivers: [] })),
@@ -78,14 +82,13 @@ export const DoctorDashboard = () => {
       if (!isBackground) setError(err.message || 'Failed to load doctor dashboard');
     } finally {
       if (!isBackground) setLoading(false);
-      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchDoctorData(false);
 
-    // Real-time synchronization: poll every 4 seconds
+    // Real-time synchronization: poll silently in background every 4 seconds
     const interval = setInterval(() => {
       fetchDoctorData(true);
     }, 4000);
@@ -172,7 +175,7 @@ export const DoctorDashboard = () => {
   }
 
   // 1. UNAPPROVED DOCTOR VIEW (Strict Rule: Unapproved doctors can see nothing)
-  if (doctorProfile?.approval_status !== 'verified') {
+  if (doctorProfile?.approval_status !== 'verified' && user?.status !== 'verified') {
     return (
       <div className="container-narrow my-12">
         <div className="card" style={{ textAlign: 'center', padding: '48px 24px' }}>
@@ -203,45 +206,10 @@ export const DoctorDashboard = () => {
             Your medical license number (<strong>{doctorProfile?.medical_license_number || 'Under Review'}</strong>) and affiliation with <strong>{doctorProfile?.hospital_name || 'Affiliated Hospital'}</strong> are currently under review by an Administrator.
           </p>
 
-          <div className="alert alert-info" style={{ textAlign: 'left', maxWidth: '480px', margin: '0 auto 20px' }}>
+          <div className="alert alert-info" style={{ textAlign: 'left', maxWidth: '480px', margin: '0 auto' }}>
             <span>
               Unapproved doctors cannot access patient medical records or blood queues. You will gain immediate access once verified by an administrator.
             </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                color: 'var(--color-slate-600)',
-                backgroundColor: 'var(--color-slate-100)',
-                padding: '6px 12px',
-                borderRadius: 'var(--radius-full)',
-              }}
-            >
-              <span
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: '#10b981',
-                  boxShadow: '0 0 6px #10b981',
-                  display: 'inline-block',
-                }}
-              />
-              Live Sync Active (4s)
-            </div>
-
-            <button
-              onClick={() => fetchDoctorData(true)}
-              className="btn btn-outline btn-sm"
-              disabled={isRefreshing}
-            >
-              {isRefreshing ? 'Checking...' : 'Check Status Now'}
-            </button>
           </div>
         </div>
       </div>
@@ -279,41 +247,6 @@ export const DoctorDashboard = () => {
                 {doctorProfile?.hospital_name} • License: {doctorProfile?.medical_license_number}
               </p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                color: 'var(--color-slate-600)',
-                backgroundColor: 'var(--color-slate-100)',
-                padding: '6px 12px',
-                borderRadius: 'var(--radius-full)',
-              }}
-            >
-              <span
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: '#10b981',
-                  boxShadow: '0 0 6px #10b981',
-                  display: 'inline-block',
-                }}
-              />
-              Live Queue Sync (4s)
-            </div>
-
-            <button
-              onClick={() => fetchDoctorData(true)}
-              className="btn btn-outline btn-sm"
-              disabled={isRefreshing}
-            >
-              {isRefreshing ? 'Syncing...' : 'Refresh Queue'}
-            </button>
           </div>
         </div>
       </div>
