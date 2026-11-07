@@ -89,13 +89,22 @@ router.get('/:id/view', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
-    if (!storageProvider.fileExists(doc.file_name)) {
-      return res.status(404).json({ error: 'File not found in storage archive.' });
+    let actualFileName = doc.file_name;
+    let actualMimeType = doc.mime_type || 'application/octet-stream';
+
+    // If file is missing on disk (e.g. initial demo placeholder), serve sample image
+    if (!storageProvider.fileExists(actualFileName)) {
+      if (storageProvider.fileExists('sample-document.jpg')) {
+        actualFileName = 'sample-document.jpg';
+        actualMimeType = 'image/jpeg';
+      } else {
+        return res.status(404).json({ error: 'File not found in storage archive.' });
+      }
     }
 
-    const stream = await storageProvider.getFileStream(doc.file_name);
-    res.setHeader('Content-Type', doc.mime_type);
-    res.setHeader('Content-Disposition', `inline; filename="${doc.original_name}"`);
+    const stream = await storageProvider.getFileStream(actualFileName);
+    res.setHeader('Content-Type', actualMimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${doc.original_name || actualFileName}"`);
     stream.pipe(res);
   } catch (err) {
     console.error('File view error:', err);
@@ -117,13 +126,21 @@ router.get('/:id/download', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
-    if (!storageProvider.fileExists(doc.file_name)) {
-      return res.status(404).json({ error: 'File not found in storage archive.' });
+    let actualFileName = doc.file_name;
+    let actualMimeType = doc.mime_type || 'application/octet-stream';
+
+    if (!storageProvider.fileExists(actualFileName)) {
+      if (storageProvider.fileExists('sample-document.jpg')) {
+        actualFileName = 'sample-document.jpg';
+        actualMimeType = 'image/jpeg';
+      } else {
+        return res.status(404).json({ error: 'File not found in storage archive.' });
+      }
     }
 
-    const stream = await storageProvider.getFileStream(doc.file_name);
-    res.setHeader('Content-Type', doc.mime_type);
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.original_name)}"`);
+    const stream = await storageProvider.getFileStream(actualFileName);
+    res.setHeader('Content-Type', actualMimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.original_name || actualFileName)}"`);
     stream.pipe(res);
   } catch (err) {
     res.status(500).json({ error: err.message });

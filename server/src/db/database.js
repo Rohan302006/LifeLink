@@ -40,7 +40,8 @@ class MemoryDB {
 
   initDefaultRecords() {
     const timestamp = new Date().toISOString();
-    const passwordHash = bcrypt.hashSync('Password123!', 10);
+    const defaultPassword = process.env.DEMO_PASSWORD || 'Password123!';
+    const passwordHash = bcrypt.hashSync(defaultPassword, 10);
 
     // 1. Admin (admin@lifelink.org / Password123!)
     const adminId = 'user-admin-001';
@@ -128,11 +129,11 @@ class MemoryDB {
       id: donorDocId,
       user_id: donorUserId,
       doc_type: 'id_proof',
-      file_name: 'sample-id-proof.pdf',
-      original_name: 'National_ID_Card.pdf',
-      mime_type: 'application/pdf',
-      file_size: 245000,
-      storage_path: 'sample-id-proof.pdf',
+      file_name: 'sample-id-proof.jpg',
+      original_name: 'National_ID_Card.jpg',
+      mime_type: 'image/jpeg',
+      file_size: 35911,
+      storage_path: 'sample-id-proof.jpg',
       status: 'verified',
       rejection_reason: null,
       reviewed_by: docUserId,
@@ -163,11 +164,11 @@ class MemoryDB {
       id: recDocId,
       user_id: receiverUserId,
       doc_type: 'medical_requisition',
-      file_name: 'sample-prescription.pdf',
-      original_name: 'Doctor_Blood_Requisition.pdf',
-      mime_type: 'application/pdf',
-      file_size: 180000,
-      storage_path: 'sample-prescription.pdf',
+      file_name: 'sample-prescription.jpg',
+      original_name: 'Doctor_Blood_Requisition.jpg',
+      mime_type: 'image/jpeg',
+      file_size: 35911,
+      storage_path: 'sample-prescription.jpg',
       status: 'verified',
       rejection_reason: null,
       reviewed_by: docUserId,

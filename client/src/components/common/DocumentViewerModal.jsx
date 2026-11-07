@@ -4,6 +4,7 @@ import { api } from '../../services/api';
 
 export const DocumentViewerModal = ({ document, onClose }) => {
   const [blobUrl, setBlobUrl] = useState(null);
+  const [blobType, setBlobType] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -28,6 +29,7 @@ export const DocumentViewerModal = ({ document, onClose }) => {
         if (active) {
           const url = URL.createObjectURL(blob);
           setBlobUrl(url);
+          setBlobType(blob.type);
         }
       } catch (err) {
         if (active) setError(err.message);
@@ -48,7 +50,8 @@ export const DocumentViewerModal = ({ document, onClose }) => {
 
   if (!document) return null;
 
-  const isPdf = document.mime_type === 'application/pdf' || document.original_name?.toLowerCase().endsWith('.pdf');
+  const isImage = blobType.startsWith('image/') || (!blobType.includes('pdf') && !document.mime_type?.includes('pdf') && !document.original_name?.toLowerCase().endsWith('.pdf'));
+  const isPdf = !isImage;
 
   return (
     <div className="modal-backdrop" onClick={onClose}>

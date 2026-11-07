@@ -1,11 +1,12 @@
 import bcrypt from 'bcryptjs';
 import { query } from '../db/database.js';
 
-export async function runSeed() {
-  console.log('🌱 Checking / Seeding LifeLink default users (Admin, Doctor, Donor, Receiver)...');
+export const DEFAULT_DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'Password123!';
 
-  const defaultPassword = 'Password123!';
-  const passwordHash = await bcrypt.hash(defaultPassword, 10);
+export async function runSeed() {
+  console.log(`🌱 Checking / Seeding LifeLink default users (Method B password active)...`);
+
+  const passwordHash = await bcrypt.hash(DEFAULT_DEMO_PASSWORD, 10);
 
   // 1. ADMIN
   const existingAdmin = await query('SELECT * FROM users WHERE email = $1', ['admin@lifelink.org']);
@@ -15,9 +16,11 @@ export async function runSeed() {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
       ['admin@lifelink.org', passwordHash, 'admin', 'System Administrator', '+91 99000 00001', 40, 'Other', 'O+', 'Mumbai', 'verified', true]
     );
-    console.log('✅ 1. Admin seeded: admin@lifelink.org / Password123!');
+    console.log(`✅ 1. Admin seeded: admin@lifelink.org / ${DEFAULT_DEMO_PASSWORD}`);
   } else {
-    console.log('ℹ️ Admin already exists: admin@lifelink.org');
+    // Keep password synchronized with DEFAULT_DEMO_PASSWORD (Method B)
+    await query('UPDATE users SET password_hash = $1 WHERE email = $2', [passwordHash, 'admin@lifelink.org']);
+    console.log(`ℹ️ Admin already exists (password synchronized to: ${DEFAULT_DEMO_PASSWORD})`);
   }
 
   // 2. DOCTOR
@@ -39,8 +42,10 @@ export async function runSeed() {
          VALUES ($1, $2, $3, $4, $5)`,
         [docUserId, 'MCI-2024-88419', 'Lilavati Hospital & Research Centre', 'Mumbai', 'verified']
       );
-      console.log('✅ 2. Doctor seeded: doctor@hospital.org / Password123!');
+      console.log(`✅ 2. Doctor seeded: doctor@hospital.org / ${DEFAULT_DEMO_PASSWORD}`);
     }
+  } else {
+    await query('UPDATE users SET password_hash = $1 WHERE email = $2', [passwordHash, 'doctor@hospital.org']);
   }
 
   // 3. DONOR
@@ -67,10 +72,12 @@ export async function runSeed() {
       await query(
         `INSERT INTO documents (user_id, doc_type, file_name, original_name, mime_type, file_size, storage_path, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [donorUserId, 'id_proof', 'sample-id-proof.pdf', 'National_ID_Card.pdf', 'application/pdf', 245000, 'sample-id-proof.pdf', 'verified']
+        [donorUserId, 'id_proof', 'sample-id-proof.jpg', 'National_ID_Card.jpg', 'image/jpeg', 35911, 'sample-id-proof.jpg', 'verified']
       );
-      console.log('✅ 3. Donor seeded (O- Verified): donor@example.com / Password123!');
+      console.log(`✅ 3. Donor seeded (O- Verified): donor@example.com / ${DEFAULT_DEMO_PASSWORD}`);
     }
+  } else {
+    await query('UPDATE users SET password_hash = $1 WHERE email = $2', [passwordHash, 'donor@example.com']);
   }
 
   // 4. RECEIVER
@@ -90,7 +97,7 @@ export async function runSeed() {
       await query(
         `INSERT INTO documents (user_id, doc_type, file_name, original_name, mime_type, file_size, storage_path, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [receiverUserId, 'medical_requisition', 'sample-prescription.pdf', 'Doctor_Blood_Requisition.pdf', 'application/pdf', 180000, 'sample-prescription.pdf', 'verified']
+        [receiverUserId, 'medical_requisition', 'sample-prescription.jpg', 'Doctor_Blood_Requisition.jpg', 'image/jpeg', 35911, 'sample-prescription.jpg', 'verified']
       );
 
       // Seed sample verified blood request
@@ -109,9 +116,24 @@ export async function runSeed() {
         );
       }
 
-      console.log('✅ 4. Receiver seeded: receiver@example.com / Password123!');
+      console.log(`✅ 4. Receiver seeded: receiver@example.com / ${DEFAULT_DEMO_PASSWORD}`);
     }
+  } else {
+    await query('UPDATE users SET password_hash = $1 WHERE email = $2', [passwordHash, 'receiver@example.com']);
   }
+
+  // Update any existing demo documents from .pdf to .jpg image format
+  await query(
+    `UPDATE documents 
+     SET file_name = 'sample-id-proof.jpg', original_name = 'National_ID_Card.jpg', mime_type = 'image/jpeg', storage_path = 'sample-id-proof.jpg'
+     WHERE file_name = 'sample-id-proof.pdf'`
+  ).catch(() => {});
+
+  await query(
+    `UPDATE documents 
+     SET file_name = 'sample-prescription.jpg', original_name = 'Doctor_Blood_Requisition.jpg', mime_type = 'image/jpeg', storage_path = 'sample-prescription.jpg'
+     WHERE file_name = 'sample-prescription.pdf'`
+  ).catch(() => {});
 
   console.log('✨ Seed verification complete.');
 }
