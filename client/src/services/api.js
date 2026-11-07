@@ -1,4 +1,6 @@
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api`
+  : '/api';
 
 function getAuthHeaders(isFormData = false) {
   const token = localStorage.getItem('lifelink_token');
@@ -245,6 +247,69 @@ export const api = {
       body: JSON.stringify({ rejection_reason: rejectionReason }),
     });
     return handleResponse(res, 'Failed to reject doctor account');
+  },
+
+  async getAdminDoctorProfile(doctorId) {
+    const res = await fetch(`${API_BASE}/admin/doctors/${doctorId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res, 'Failed to fetch doctor profile');
+  },
+
+  async deleteDoctor(doctorId, reason) {
+    const res = await fetch(`${API_BASE}/admin/doctors/${doctorId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ reason }),
+    });
+    return handleResponse(res, 'Failed to delete doctor account');
+  },
+
+  // 9. Admin Portal - User Section (Donors & Receivers)
+  async getAdminUsers(role = '') {
+    const url = role ? `${API_BASE}/admin/users?role=${role}` : `${API_BASE}/admin/users`;
+    const res = await fetch(url, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res, 'Failed to fetch users list');
+  },
+
+  async getAdminUserProfile(userId) {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res, 'Failed to fetch user profile');
+  },
+
+  async deleteUser(userId, reason) {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ reason }),
+    });
+    return handleResponse(res, 'Failed to delete user account');
+  },
+
+  // 10. Hospitals (Public & Admin)
+  async getHospitals() {
+    const res = await fetch(`${API_BASE}/hospitals`);
+    return handleResponse(res, 'Failed to fetch hospitals list');
+  },
+
+  async getAdminHospitals() {
+    const res = await fetch(`${API_BASE}/admin/hospitals`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res, 'Failed to fetch admin hospitals list');
+  },
+
+  async addHospital(hospitalData) {
+    const res = await fetch(`${API_BASE}/admin/hospitals`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(hospitalData),
+    });
+    return handleResponse(res, 'Failed to add hospital');
   },
 };
 

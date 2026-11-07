@@ -8,6 +8,7 @@ import receiverRoutes from './routes/receiverRoutes.js';
 import requestRoutes from './routes/requestRoutes.js';
 import doctorRoutes from './routes/doctorRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import hospitalRoutes from './routes/hospitalRoutes.js';
 
 export const app = express();
 
@@ -39,6 +40,7 @@ app.use('/api/receivers', receiverRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/doctor', doctorRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/hospitals', hospitalRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

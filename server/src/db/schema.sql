@@ -93,6 +93,17 @@ CREATE TABLE IF NOT EXISTS request_matches (
     UNIQUE (request_id, donor_id)
 );
 
+-- 7. Hospitals Table (Pre-approved / Listed Facilities)
+CREATE TABLE IF NOT EXISTS hospitals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) UNIQUE NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(100),
+    address TEXT,
+    contact_phone VARCHAR(50),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Indexes for efficient queries
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
@@ -100,3 +111,4 @@ CREATE INDEX IF NOT EXISTS idx_documents_user ON documents(user_id);
 CREATE INDEX IF NOT EXISTS idx_documents_type ON documents(doc_type);
 CREATE INDEX IF NOT EXISTS idx_blood_requests_status ON blood_requests(status);
 CREATE INDEX IF NOT EXISTS idx_blood_requests_group ON blood_requests(blood_group);
+CREATE INDEX IF NOT EXISTS idx_hospitals_name ON hospitals(name);

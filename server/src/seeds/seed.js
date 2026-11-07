@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { query } from '../db/database.js';
+import { DEFAULT_HOSPITALS, DEMO_DONORS, DEMO_RECEIVERS, ADDITIONAL_DOCTORS } from './seedData.js';
 
 export const DEFAULT_DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'Password123!';
 
@@ -47,6 +48,33 @@ export async function runSeed() {
   } else {
     await query('UPDATE users SET password_hash = $1 WHERE email = $2', [passwordHash, 'doctor@hospital.org']);
   }
+
+  // 2b. ADDITIONAL 4 VERIFIED DOCTORS
+  for (const doc of ADDITIONAL_DOCTORS) {
+    const existing = await query('SELECT id FROM users WHERE email = $1', [doc.email]);
+    let docId = existing.rows[0]?.id;
+
+    if (existing.rows.length === 0) {
+      const docRes = await query(
+        `INSERT INTO users (email, password_hash, role, full_name, phone, age, gender, blood_group, city, status, onboarding_completed)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         RETURNING *`,
+        [doc.email, passwordHash, 'doctor', doc.name, doc.phone, doc.age, doc.gender, doc.blood_group, doc.city, 'verified', true]
+      );
+      docId = docRes.rows[0]?.id;
+
+      if (docId) {
+        await query(
+          `INSERT INTO doctor_profiles (user_id, medical_license_number, hospital_name, hospital_city, approval_status)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [docId, doc.license, doc.hospital, doc.hospital_city, 'verified']
+        );
+      }
+    } else {
+      await query('UPDATE users SET password_hash = $1 WHERE email = $2', [passwordHash, doc.email]);
+    }
+  }
+  console.log(`✅ Seeded ${ADDITIONAL_DOCTORS.length} additional verified doctors.`);
 
   // 3. DONOR
   const existingDonor = await query('SELECT * FROM users WHERE email = $1', ['donor@example.com']);
@@ -121,6 +149,91 @@ export async function runSeed() {
   } else {
     await query('UPDATE users SET password_hash = $1 WHERE email = $2', [passwordHash, 'receiver@example.com']);
   }
+
+  // 5. Popular Maharashtra Hospitals
+  for (const h of DEFAULT_HOSPITALS) {
+    const existingHosp = await query('SELECT id FROM hospitals WHERE LOWER(name) = $1', [h.name.toLowerCase()]);
+    if (existingHosp.rows.length === 0) {
+      await query(
+        `INSERT INTO hospitals (name, city, state, address, contact_phone)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [h.name, h.city, h.state, h.address, h.contact_phone]
+      );
+    }
+  }
+  console.log(`✅ Seeded ${DEFAULT_HOSPITALS.length} popular Maharashtra hospitals.`);
+
+  // 6. Additional Authentic Indian Donors
+  for (const d of DEMO_DONORS) {
+    const existing = await query('SELECT id FROM users WHERE email = $1', [d.email]);
+    let uid = existing.rows[0]?.id;
+
+    if (existing.rows.length === 0) {
+      const uRes = await query(
+        `INSERT INTO users (email, password_hash, role, full_name, phone, age, gender, blood_group, city, status, onboarding_completed)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         RETURNING *`,
+        [d.email, passwordHash, 'donor', d.name, d.phone, d.age, d.gender, d.blood_group, d.city, d.status, true]
+      );
+      uid = uRes.rows[0]?.id;
+
+      if (uid) {
+        const lastDate = d.daysAgo !== null
+          ? new Date(Date.now() - d.daysAgo * 24 * 3600000).toISOString().split('T')[0]
+          : null;
+
+        await query(
+          `INSERT INTO donor_profiles (user_id, last_donation_date, last_donation_date_status, is_available, is_verified)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [uid, lastDate, d.donationStatus, d.available, d.status === 'verified']
+        );
+
+        await query(
+          `INSERT INTO documents (user_id, doc_type, file_name, original_name, mime_type, file_size, storage_path, status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [uid, 'id_proof', 'sample-id-proof.jpg', `${d.name.replace(/\s+/g, '_')}_Aadhaar_ID.jpg`, 'image/jpeg', 35911, 'sample-id-proof.jpg', d.status === 'verified' ? 'verified' : 'pending']
+        );
+      }
+    } else {
+      await query('UPDATE users SET password_hash = $1 WHERE email = $2', [passwordHash, d.email]);
+    }
+  }
+  console.log(`✅ Seeded ${DEMO_DONORS.length} Indian blood donors.`);
+
+  // 7. Additional Authentic Indian Receivers & Blood Requisitions
+  for (const r of DEMO_RECEIVERS) {
+    const existing = await query('SELECT id FROM users WHERE email = $1', [r.email]);
+    let uid = existing.rows[0]?.id;
+
+    if (existing.rows.length === 0) {
+      const uRes = await query(
+        `INSERT INTO users (email, password_hash, role, full_name, phone, age, gender, blood_group, city, status, onboarding_completed)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         RETURNING *`,
+        [r.email, passwordHash, 'receiver', r.name, r.phone, r.age, r.gender, r.blood_group, r.city, r.status, true]
+      );
+      uid = uRes.rows[0]?.id;
+
+      if (uid) {
+        await query(
+          `INSERT INTO documents (user_id, doc_type, file_name, original_name, mime_type, file_size, storage_path, status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [uid, 'medical_requisition', 'sample-prescription.jpg', `${r.name.replace(/\s+/g, '_')}_Doctor_Requisition.jpg`, 'image/jpeg', 35911, 'sample-prescription.jpg', r.status === 'verified' ? 'verified' : 'pending']
+        );
+
+        if (r.request) {
+          await query(
+            `INSERT INTO blood_requests (requester_id, patient_name, blood_group, units_needed, hospital_name, city, urgency, status, doctor_notes)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+            [uid, r.request.patient, r.request.blood_group, r.request.units, r.request.hospital, r.request.city, r.request.urgency, r.request.status, r.request.doctor_notes]
+          );
+        }
+      }
+    } else {
+      await query('UPDATE users SET password_hash = $1 WHERE email = $2', [passwordHash, r.email]);
+    }
+  }
+  console.log(`✅ Seeded ${DEMO_RECEIVERS.length} Indian blood receivers with requisitions.`);
 
   // Update any existing demo documents from .pdf to .jpg image format
   await query(

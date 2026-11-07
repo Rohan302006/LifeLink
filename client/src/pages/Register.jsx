@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { api } from '../services/api';
 import { Heart, UserCheck, Activity, Stethoscope, ArrowRight } from 'lucide-react';
 
 export const Register = () => {
@@ -21,9 +22,26 @@ export const Register = () => {
   // Doctor specific fields
   const [medicalLicense, setMedicalLicense] = useState('');
   const [hospitalName, setHospitalName] = useState('');
+  const [hospitals, setHospitals] = useState([]);
+  const [loadingHospitals, setLoadingHospitals] = useState(false);
 
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchHospitals = async () => {
+      try {
+        setLoadingHospitals(true);
+        const res = await api.getHospitals();
+        setHospitals(res.hospitals || []);
+      } catch (err) {
+        console.warn('Could not fetch hospitals list:', err.message);
+      } finally {
+        setLoadingHospitals(false);
+      }
+    };
+    fetchHospitals();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -290,17 +308,30 @@ export const Register = () => {
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" htmlFor="hospital">Hospital Affiliation</label>
-                  <input
+                  <select
                     id="hospital"
-                    type="text"
-                    className="form-control"
-                    placeholder="e.g. Lilavati Hospital & Research Centre"
+                    className="form-select"
                     value={hospitalName}
-                    onChange={(e) => setHospitalName(e.target.value)}
+                    onChange={(e) => {
+                      setHospitalName(e.target.value);
+                      const matched = hospitals.find((h) => h.name === e.target.value);
+                      if (matched && matched.city && !city) {
+                        setCity(matched.city);
+                      }
+                    }}
                     required
-                  />
+                  >
+                    <option value="">
+                      {loadingHospitals ? 'Loading listed hospitals...' : 'Select Affiliated Hospital...'}
+                    </option>
+                    {hospitals.map((hosp) => (
+                      <option key={hosp.id || hosp.name} value={hosp.name}>
+                        {hosp.name} ({hosp.city})
+                      </option>
+                    ))}
+                  </select>
                   <p className="form-hint">
-                    Notice: Doctor accounts stay "Pending" until an Admin approves your license.
+                    Notice: Doctor accounts stay "Pending" until an Admin approves your license. (Hospital listed by Platform Admin).
                   </p>
                 </div>
               </div>

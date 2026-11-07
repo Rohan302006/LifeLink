@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { fileURLToPath } from 'url';
 import { config } from '../config/env.js';
+import { DEFAULT_HOSPITALS, DEMO_DONORS, DEMO_RECEIVERS, ADDITIONAL_DOCTORS } from '../seeds/seedData.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,6 +24,7 @@ class MemoryDB {
     this.documents = new Map();
     this.bloodRequests = new Map();
     this.requestMatches = new Map();
+    this.hospitals = new Map();
 
     // Auto-populate default accounts synchronously so login works instantly out-of-the-box
     this.initDefaultRecords();
@@ -35,6 +37,7 @@ class MemoryDB {
     this.documents.clear();
     this.bloodRequests.clear();
     this.requestMatches.clear();
+    this.hospitals.clear();
     this.initDefaultRecords();
   }
 
@@ -202,6 +205,159 @@ class MemoryDB {
       notified_at: timestamp,
       responded_at: null,
     });
+
+    // 5. Popular Maharashtra Hospitals
+    for (const h of DEFAULT_HOSPITALS) {
+      this.hospitals.set(h.id, {
+        ...h,
+        created_at: timestamp,
+      });
+    }
+
+    // 6. Additional Authentic Indian Donors
+    for (const d of DEMO_DONORS) {
+      this.users.set(d.id, {
+        id: d.id,
+        email: d.email,
+        password_hash: passwordHash,
+        role: 'donor',
+        full_name: d.name,
+        phone: d.phone,
+        age: d.age,
+        gender: d.gender,
+        blood_group: d.blood_group,
+        city: d.city,
+        status: d.status,
+        onboarding_completed: true,
+        created_at: timestamp,
+        updated_at: timestamp,
+      });
+
+      const lastDate = d.daysAgo !== null
+        ? new Date(Date.now() - d.daysAgo * 24 * 3600000).toISOString().split('T')[0]
+        : null;
+
+      this.donorProfiles.set(d.profileId, {
+        id: d.profileId,
+        user_id: d.id,
+        last_donation_date: lastDate,
+        last_donation_date_status: d.donationStatus,
+        last_donation_rejection_reason: null,
+        is_available: d.available,
+        is_verified: d.status === 'verified',
+        created_at: timestamp,
+        updated_at: timestamp,
+      });
+
+      // Sample verified ID proof document for profile viewer
+      const docId = `doc-${d.id}`;
+      this.documents.set(docId, {
+        id: docId,
+        user_id: d.id,
+        doc_type: 'id_proof',
+        file_name: 'sample-id-proof.jpg',
+        original_name: `${d.name.replace(/\s+/g, '_')}_Aadhaar_ID.jpg`,
+        mime_type: 'image/jpeg',
+        file_size: 35911,
+        storage_path: 'sample-id-proof.jpg',
+        status: d.status === 'verified' ? 'verified' : 'pending',
+        rejection_reason: null,
+        reviewed_by: docUserId,
+        reviewed_at: timestamp,
+        created_at: timestamp,
+      });
+    }
+
+    // 7. Additional Authentic Indian Receivers with Emergency Requests
+    for (const r of DEMO_RECEIVERS) {
+      this.users.set(r.id, {
+        id: r.id,
+        email: r.email,
+        password_hash: passwordHash,
+        role: 'receiver',
+        full_name: r.name,
+        phone: r.phone,
+        age: r.age,
+        gender: r.gender,
+        blood_group: r.blood_group,
+        city: r.city,
+        status: r.status,
+        onboarding_completed: true,
+        created_at: timestamp,
+        updated_at: timestamp,
+      });
+
+      // Document for receiver
+      const docId = `doc-${r.id}`;
+      this.documents.set(docId, {
+        id: docId,
+        user_id: r.id,
+        doc_type: 'medical_requisition',
+        file_name: 'sample-prescription.jpg',
+        original_name: `${r.name.replace(/\s+/g, '_')}_Doctor_Requisition.jpg`,
+        mime_type: 'image/jpeg',
+        file_size: 35911,
+        storage_path: 'sample-prescription.jpg',
+        status: r.status === 'verified' ? 'verified' : 'pending',
+        rejection_reason: null,
+        reviewed_by: docUserId,
+        reviewed_at: timestamp,
+        created_at: timestamp,
+      });
+
+      // Emergency Blood Request
+      if (r.request) {
+        this.bloodRequests.set(r.request.id, {
+          id: r.request.id,
+          requester_id: r.id,
+          patient_name: r.request.patient,
+          blood_group: r.request.blood_group,
+          units_needed: r.request.units,
+          hospital_name: r.request.hospital,
+          city: r.request.city,
+          urgency: r.request.urgency,
+          status: r.request.status,
+          rejection_reason: null,
+          doctor_notes: r.request.doctor_notes,
+          verified_by: r.request.status === 'verified' ? docUserId : null,
+          verified_at: r.request.status === 'verified' ? timestamp : null,
+          fulfilled_at: r.request.status === 'fulfilled' ? timestamp : null,
+          created_at: timestamp,
+        });
+      }
+    }
+
+    // 8. 4 Additional Verified Doctors
+    for (const doc of ADDITIONAL_DOCTORS) {
+      this.users.set(doc.id, {
+        id: doc.id,
+        email: doc.email,
+        password_hash: passwordHash,
+        role: 'doctor',
+        full_name: doc.name,
+        phone: doc.phone,
+        age: doc.age,
+        gender: doc.gender,
+        blood_group: doc.blood_group,
+        city: doc.city,
+        status: 'verified',
+        onboarding_completed: true,
+        created_at: timestamp,
+        updated_at: timestamp,
+      });
+
+      this.doctorProfiles.set(doc.profileId, {
+        id: doc.profileId,
+        user_id: doc.id,
+        medical_license_number: doc.license,
+        hospital_name: doc.hospital,
+        hospital_city: doc.hospital_city,
+        approval_status: 'verified',
+        rejection_reason: null,
+        reviewed_at: timestamp,
+        created_at: timestamp,
+      });
+    }
   }
 }
 
@@ -274,7 +430,9 @@ export async function query(sql, params = []) {
     if (lower.includes('from users') && lower.includes('id = $1')) {
       const id = params[0];
       const user = memoryStore.users.get(id);
-      return formatResult(user ? [user] : []);
+      if (!user) return formatResult([]);
+      if (lower.includes('role = $2') && user.role !== params[1]) return formatResult([]);
+      return formatResult([user]);
     }
 
     // SELECT * FROM users WHERE role = $1
@@ -282,6 +440,13 @@ export async function query(sql, params = []) {
       const roleParam = lower.includes("role = 'receiver'") ? 'receiver' : params[0];
       const rows = Array.from(memoryStore.users.values()).filter(u => u.role === roleParam);
       return formatResult(rows);
+    }
+
+    // SELECT * FROM doctor_profiles WHERE id = $1
+    if (lower.includes('from doctor_profiles') && lower.includes('id = $1')) {
+      const id = params[0];
+      const dp = memoryStore.doctorProfiles.get(id) || Array.from(memoryStore.doctorProfiles.values()).find(d => d.id === id || d.user_id === id);
+      return formatResult(dp ? [dp] : []);
     }
 
     // SELECT * FROM doctor_profiles WHERE medical_license_number = $1
@@ -298,12 +463,25 @@ export async function query(sql, params = []) {
       return formatResult(rows);
     }
 
+    // SELECT * / hospital_name FROM doctor_profiles (without WHERE clause)
+    if (lower.includes('from doctor_profiles') && !lower.includes('where') && !lower.includes('join')) {
+      return formatResult(Array.from(memoryStore.doctorProfiles.values()));
+    }
+
     // All doctor profiles with user details for admin
     if (
       (lower.includes('from doctor_profiles dp') && lower.includes('join users u')) ||
       (lower.includes('from users u') && lower.includes('doctor_profiles dp'))
     ) {
-      const doctorUsers = Array.from(memoryStore.users.values()).filter(u => u.role === 'doctor');
+      let doctorUsers = Array.from(memoryStore.users.values()).filter(u => u.role === 'doctor');
+      if (params.length > 0 && lower.includes('approval_status')) {
+        const targetStatus = (params[0] || '').toLowerCase().trim();
+        doctorUsers = doctorUsers.filter(u => {
+          const dp = Array.from(memoryStore.doctorProfiles.values()).find(d => d.user_id === u.id);
+          const st = (dp?.approval_status || u.status || 'pending').toLowerCase();
+          return st === targetStatus;
+        });
+      }
       const rows = doctorUsers.map(u => {
         const dp = Array.from(memoryStore.doctorProfiles.values()).find(d => d.user_id === u.id) || {};
         return {
@@ -318,6 +496,9 @@ export async function query(sql, params = []) {
           full_name: u.full_name,
           email: u.email,
           phone: u.phone,
+          age: u.age || null,
+          gender: u.gender || null,
+          blood_group: u.blood_group || null,
           city: u.city,
           user_status: u.status,
           registered_at: u.created_at,
@@ -333,8 +514,54 @@ export async function query(sql, params = []) {
       return formatResult(rows);
     }
 
-    // SELECT ... FROM users u JOIN donor_profiles dp ON u.id = dp.user_id
-    if (lower.includes('from users u') && lower.includes('join donor_profiles dp')) {
+    // All regular users (donor/receiver) for admin User Section
+    if (
+      lower.includes('from users u') &&
+      (lower.includes("role in ('donor', 'receiver')") ||
+        lower.includes("role in ('donor','receiver')") ||
+        lower.includes("u.role != 'admin'"))
+    ) {
+      let regUsers = Array.from(memoryStore.users.values()).filter(u => u.role === 'donor' || u.role === 'receiver');
+      if (params.length > 0) {
+        if (lower.includes('u.role = $')) {
+          const targetRole = params[0];
+          regUsers = regUsers.filter(u => u.role === targetRole);
+        }
+        if (lower.includes('lower(u.status) = $')) {
+          const targetStatus = params[params.length - 1];
+          regUsers = regUsers.filter(u => (u.status || '').toLowerCase() === targetStatus.toLowerCase());
+        }
+      }
+      const rows = regUsers.map(u => {
+        const dp = Array.from(memoryStore.donorProfiles.values()).find(d => d.user_id === u.id) || {};
+        const reqCount = Array.from(memoryStore.bloodRequests.values()).filter(r => r.requester_id === u.id).length;
+        return {
+          id: u.id,
+          user_id: u.id,
+          full_name: u.full_name,
+          email: u.email,
+          phone: u.phone,
+          role: u.role,
+          status: u.status,
+          age: u.age,
+          gender: u.gender,
+          blood_group: u.blood_group,
+          city: u.city,
+          onboarding_completed: u.onboarding_completed,
+          created_at: u.created_at,
+          registered_at: u.created_at,
+          is_available: dp.is_available !== undefined ? dp.is_available : null,
+          is_verified: dp.is_verified !== undefined ? dp.is_verified : null,
+          last_donation_date: dp.last_donation_date || null,
+          last_donation_date_status: dp.last_donation_date_status || null,
+          requests_count: reqCount,
+        };
+      });
+      return formatResult(rows);
+    }
+
+    // SELECT ... FROM users u JOIN donor_profiles dp ON u.id = dp.user_id (Workflow matching only)
+    if (lower.includes('from users u') && lower.includes('join donor_profiles dp') && !lower.includes('u.role in') && !lower.includes('u.full_name')) {
       const rows = [];
       for (const u of memoryStore.users.values()) {
         const dp = Array.from(memoryStore.donorProfiles.values()).find(d => d.user_id === u.id);
@@ -420,6 +647,21 @@ export async function query(sql, params = []) {
         const m = memoryStore.requestMatches.get(params[0]);
         return formatResult(m ? [m] : []);
       }
+    }
+
+    // Hospitals
+    if (lower.includes('from hospitals')) {
+      if (lower.includes('lower(name) = $1') || lower.includes('name = $1')) {
+        const nameParam = (params[0] || '').toLowerCase().trim();
+        const rows = Array.from(memoryStore.hospitals.values()).filter(h => h.name.toLowerCase().trim() === nameParam);
+        return formatResult(rows);
+      }
+      if (lower.includes('id = $1')) {
+        const h = memoryStore.hospitals.get(params[0]);
+        return formatResult(h ? [h] : []);
+      }
+      const rows = Array.from(memoryStore.hospitals.values()).sort((a, b) => a.name.localeCompare(b.name));
+      return formatResult(rows);
     }
   }
 
@@ -544,6 +786,22 @@ export async function query(sql, params = []) {
     return formatResult([newMatch]);
   }
 
+  if (lower.startsWith('insert into hospitals')) {
+    const id = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    const newHosp = {
+      id,
+      name: params[0],
+      city: params[1],
+      state: params[2] || '',
+      address: params[3] || '',
+      contact_phone: params[4] || '',
+      created_at: timestamp,
+    };
+    memoryStore.hospitals.set(id, newHosp);
+    return formatResult([newHosp]);
+  }
+
   // 3. UPDATE queries
   if (lower.startsWith('update users')) {
     const id = params[params.length - 1];
@@ -605,6 +863,15 @@ export async function query(sql, params = []) {
   }
 
   if (lower.startsWith('update documents')) {
+    if (lower.includes('set reviewed_by = null')) {
+      const targetUserId = params[0];
+      for (const doc of memoryStore.documents.values()) {
+        if (doc.reviewed_by === targetUserId) {
+          doc.reviewed_by = null;
+        }
+      }
+      return formatResult([]);
+    }
     const id = params[params.length - 1];
     const doc = memoryStore.documents.get(id);
     if (doc) {
@@ -622,6 +889,15 @@ export async function query(sql, params = []) {
   }
 
   if (lower.startsWith('update blood_requests')) {
+    if (lower.includes('set verified_by = null')) {
+      const targetUserId = params[0];
+      for (const req of memoryStore.bloodRequests.values()) {
+        if (req.verified_by === targetUserId) {
+          req.verified_by = null;
+        }
+      }
+      return formatResult([]);
+    }
     const id = params[params.length - 1];
     const req = memoryStore.bloodRequests.get(id);
     if (req) {
@@ -642,6 +918,70 @@ export async function query(sql, params = []) {
       match.responded_at = new Date().toISOString();
       return formatResult([match]);
     }
+  }
+
+  // 4. DELETE queries
+  if (lower.startsWith('delete from users')) {
+    const id = params[0];
+    const user = memoryStore.users.get(id);
+    if (user) {
+      memoryStore.users.delete(id);
+      for (const [dpId, dp] of memoryStore.doctorProfiles.entries()) {
+        if (dp.user_id === id || dpId === id) {
+          memoryStore.doctorProfiles.delete(dpId);
+        }
+      }
+      for (const [dpId, dp] of memoryStore.donorProfiles.entries()) {
+        if (dp.user_id === id) {
+          memoryStore.donorProfiles.delete(dpId);
+        }
+      }
+      for (const [docId, doc] of memoryStore.documents.entries()) {
+        if (doc.user_id === id) {
+          memoryStore.documents.delete(docId);
+        } else if (doc.reviewed_by === id) {
+          doc.reviewed_by = null;
+        }
+      }
+      for (const [reqId, req] of memoryStore.bloodRequests.entries()) {
+        if (req.requester_id === id) {
+          memoryStore.bloodRequests.delete(reqId);
+        } else if (req.verified_by === id) {
+          req.verified_by = null;
+        }
+      }
+      for (const [matchId, match] of memoryStore.requestMatches.entries()) {
+        if (match.donor_id === id) {
+          memoryStore.requestMatches.delete(matchId);
+        }
+      }
+      return formatResult([user]);
+    }
+    return formatResult([]);
+  }
+
+  if (lower.startsWith('delete from doctor_profiles')) {
+    const id = params[0];
+    const toDelete = [];
+    for (const [dpId, dp] of memoryStore.doctorProfiles.entries()) {
+      if (dp.user_id === id || dpId === id) {
+        toDelete.push(dpId);
+      }
+    }
+    toDelete.forEach(k => memoryStore.doctorProfiles.delete(k));
+    return formatResult(toDelete.map(k => ({ id: k })));
+  }
+
+  if (lower.startsWith('delete from documents')) {
+    const userId = params[0];
+    const toDelete = [];
+    for (const [docId, doc] of memoryStore.documents.entries()) {
+      if (doc.user_id === userId) {
+        toDelete.push(docId);
+      }
+    }
+    toDelete.forEach(k => memoryStore.documents.delete(k));
+    return formatResult(toDelete.map(k => ({ id: k })));
   }
 
   return formatResult([]);
