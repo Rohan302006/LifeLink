@@ -163,57 +163,138 @@ export const Navbar = () => {
             )}
           </nav>
 
-          {/* Mobile hamburger menu */}
-          <div style={{ display: 'none' }} className="mobile-toggle-btn">
-            <button onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle menu">
+          {/* Mobile hamburger menu button */}
+          <div className="mobile-toggle-btn">
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Toggle navigation menu"
+              className="mobile-hamburger-btn"
+            >
               {mobileOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
 
-        {/* Mobile dropdown menu */}
+        {/* Mobile slide-down menu */}
         {mobileOpen && (
-          <div style={{ padding: '16px 0', borderTop: '1px solid var(--color-slate-200)' }}>
+          <div className="mobile-nav-drawer">
             {!user ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <Link to="/" onClick={() => setMobileOpen(false)} className="nav-link">Home</Link>
-                <Link to="/login" onClick={() => setMobileOpen(false)} className="btn btn-outline btn-block">Sign In</Link>
-                <Link to="/register" onClick={() => setMobileOpen(false)} className="btn btn-primary btn-block">Register</Link>
+              <div className="mobile-nav-group">
+                <Link to="/" onClick={() => setMobileOpen(false)} className="mobile-nav-link">
+                  Home
+                </Link>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                  <Link to="/login" onClick={() => setMobileOpen(false)} className="btn btn-outline btn-block">
+                    <LogIn size={15} /> Sign In
+                  </Link>
+                  <Link to="/register" onClick={() => setMobileOpen(false)} className="btn btn-primary btn-block">
+                    <Heart size={15} fill="#ffffff" /> Register
+                  </Link>
+                </div>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div className="mobile-nav-group">
+                {/* Mobile User Profile Header */}
+                <div className="mobile-user-card">
+                  <div className="user-avatar" style={{ width: '36px', height: '36px', fontSize: '14px' }}>
+                    {user.full_name?.charAt(0).toUpperCase() || <User size={16} />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-slate-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {user.full_name}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                      <span className="badge badge-role">{user.role}</span>
+                      {user.blood_group && <span className="badge badge-blood">{user.blood_group}</span>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mobile Nav Links by Role */}
                 {user.role === 'donor' && (
                   <>
-                    <Link to="/donor/dashboard" onClick={() => setMobileOpen(false)} className="nav-link">
-                      Donor Dashboard
+                    <Link
+                      to="/donor/dashboard"
+                      onClick={() => setMobileOpen(false)}
+                      className={`mobile-nav-link ${isActive('/donor/dashboard') ? 'active' : ''}`}
+                    >
+                      <Activity size={17} color="var(--color-primary)" />
+                      <span>Donor Dashboard</span>
                     </Link>
-                    <Link to="/requests/new" onClick={() => setMobileOpen(false)} className="nav-link">
-                      Need Blood Request
+                    <Link
+                      to="/requests/new"
+                      onClick={() => setMobileOpen(false)}
+                      className="mobile-nav-link"
+                      style={{ color: 'var(--color-primary)', fontWeight: '700' }}
+                    >
+                      <PlusCircle size={17} />
+                      <span>Need Blood Urgently?</span>
                     </Link>
                   </>
                 )}
+
                 {user.role === 'receiver' && (
                   <>
-                    <Link to="/receiver/dashboard" onClick={() => setMobileOpen(false)} className="nav-link">
-                      My Requests
+                    <Link
+                      to="/receiver/dashboard"
+                      onClick={() => setMobileOpen(false)}
+                      className={`mobile-nav-link ${isActive('/receiver/dashboard') ? 'active' : ''}`}
+                    >
+                      <Activity size={17} color="var(--color-primary)" />
+                      <span>My Requisitions</span>
                     </Link>
-                    <Link to="/requests/new" onClick={() => setMobileOpen(false)} className="nav-link">
-                      Create Request
+                    <Link
+                      to="/requests/new"
+                      onClick={() => setMobileOpen(false)}
+                      className="mobile-nav-link"
+                      style={{ color: 'var(--color-primary)', fontWeight: '700' }}
+                    >
+                      <PlusCircle size={17} />
+                      <span>New Blood Request</span>
+                    </Link>
+                    <Link
+                      to="/donor/dashboard"
+                      onClick={() => setMobileOpen(false)}
+                      className="mobile-nav-link"
+                    >
+                      <Heart size={17} color="var(--color-primary)" />
+                      <span>Volunteer to Donate</span>
                     </Link>
                   </>
                 )}
+
                 {user.role === 'doctor' && (
-                  <Link to="/doctor/dashboard" onClick={() => setMobileOpen(false)} className="nav-link">
-                    Doctor Queue
+                  <Link
+                    to="/doctor/dashboard"
+                    onClick={() => setMobileOpen(false)}
+                    className={`mobile-nav-link ${isActive('/doctor/dashboard') ? 'active' : ''}`}
+                  >
+                    <CheckSquare size={17} color="var(--color-primary)" />
+                    <span>Doctor Verification Queue</span>
                   </Link>
                 )}
+
                 {user.role === 'admin' && (
-                  <Link to="/admin" onClick={() => setMobileOpen(false)} className="nav-link">
-                    Doctor Approvals
+                  <Link
+                    to="/admin"
+                    onClick={() => setMobileOpen(false)}
+                    className={`mobile-nav-link ${isActive('/admin') ? 'active' : ''}`}
+                  >
+                    <ShieldAlert size={17} color="var(--color-primary)" />
+                    <span>Administration Portal</span>
                   </Link>
                 )}
-                <button onClick={handleLogout} className="btn btn-outline btn-sm btn-block" style={{ marginTop: '12px' }}>
-                  <LogOut size={14} /> Log Out ({user.full_name})
+
+                {/* Logout Button */}
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    handleLogout();
+                  }}
+                  className="btn btn-outline btn-block"
+                  style={{ marginTop: '8px', color: '#be123c', borderColor: '#fecdd3' }}
+                >
+                  <LogOut size={15} /> Sign Out
                 </button>
               </div>
             )}

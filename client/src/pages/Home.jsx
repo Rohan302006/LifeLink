@@ -18,23 +18,23 @@ export const Home = () => {
   return (
     <div style={{ paddingBottom: '64px' }}>
       {/* Hero Section */}
-      <section style={{ backgroundColor: 'var(--color-slate-900)', color: 'var(--color-white)', padding: '72px 16px 80px', textAlign: 'center' }}>
+      <section className="hero-section">
         <div className="container-narrow">
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', borderRadius: 'var(--radius-full)', backgroundColor: 'rgba(255, 255, 255, 0.1)', fontSize: '12px', fontWeight: '700', color: '#34d399', marginBottom: '20px' }}>
             <span className="pulse-dot" />
             DOCTOR-SUPERVISED BLOOD COORDINATION
           </div>
 
-          <h1 style={{ fontSize: '38px', fontWeight: '800', lineHeight: 1.2, letterSpacing: '-0.02em', marginBottom: '16px' }}>
+          <h1 className="hero-title">
             Connecting Emergency Blood Needs to Verified Donors
           </h1>
 
-          <p style={{ fontSize: '16px', color: 'var(--color-slate-300)', lineHeight: 1.6, marginBottom: '32px' }}>
+          <p className="hero-subtitle">
             LifeLink eliminates fake forwards and spam calls by ensuring every emergency requisition and donor credential is independently verified by a licensed hospital doctor.
           </p>
 
           {!user ? (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            <div className="hero-actions">
               <Link to="/register" className="btn btn-primary btn-lg">
                 <Heart size={18} fill="#ffffff" />
                 Register as Donor or Receiver
@@ -44,7 +44,7 @@ export const Home = () => {
               </Link>
             </div>
           ) : (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            <div className="hero-actions">
               <Link
                 to={
                   user.role === 'donor'

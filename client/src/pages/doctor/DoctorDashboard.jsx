@@ -294,7 +294,7 @@ export const DoctorDashboard = () => {
                 <p>No registered donors found.</p>
               </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
+              <div className="table-responsive" style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--color-slate-200)', backgroundColor: 'var(--color-slate-50)' }}>
@@ -358,7 +358,7 @@ export const DoctorDashboard = () => {
                 <p>No registered receivers found.</p>
               </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
+              <div className="table-responsive" style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--color-slate-200)', backgroundColor: 'var(--color-slate-50)' }}>

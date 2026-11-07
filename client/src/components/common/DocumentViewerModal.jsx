@@ -66,7 +66,7 @@ export const DocumentViewerModal = ({ document, onClose }) => {
           </button>
         </div>
 
-        <div className="modal-body" style={{ minHeight: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="modal-body" style={{ minHeight: '260px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           {loading && (
             <div style={{ textAlign: 'center' }}>
               <div className="spinner" />

@@ -565,7 +565,7 @@ export const AdminDashboard = () => {
                   )}
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto' }}>
+                <div className="table-responsive" style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--color-slate-200)', backgroundColor: 'var(--color-slate-50)' }}>
@@ -835,7 +835,7 @@ export const AdminDashboard = () => {
                   )}
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto' }}>
+                <div className="table-responsive" style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--color-slate-200)', backgroundColor: 'var(--color-slate-50)' }}>
@@ -985,7 +985,7 @@ export const AdminDashboard = () => {
                   </button>
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto' }}>
+                <div className="table-responsive" style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--color-slate-200)', backgroundColor: 'var(--color-slate-50)' }}>
@@ -1566,7 +1566,7 @@ export const AdminDashboard = () => {
                     </h4>
                   </div>
                   <div className="card-body" style={{ padding: 0 }}>
-                    <div style={{ overflowX: 'auto' }}>
+                    <div className="table-responsive" style={{ overflowX: 'auto' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
                         <thead>
                           <tr style={{ backgroundColor: 'var(--color-slate-50)', borderBottom: '1px solid var(--color-slate-200)' }}>

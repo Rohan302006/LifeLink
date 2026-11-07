@@ -367,9 +367,12 @@ The design system is implemented in [`client/src/index.css`](file:///e:/Olympus2
 * **Spinners & Pulses**: `.spinner`, `.pulse-dot` (used for live status indicators).
 
 ### Responsive Design Rules
-* Mobile-first responsive layout with breakpoints at `768px` and `640px`.
-* Desktop navbar hides hamburger and reveals role-specific actions; mobile displays a collapsible slide-down drawer.
-* Grid systems: `.grid-2`, `.grid-3`, `.grid-4` collapse automatically to single columns on small screens.
+* Mobile-first responsive layout with standard breakpoints at `1024px`, `768px`, and `480px`.
+* **Mobile Navigation**: Desktop navbar hides on screens $\le 768\text{px}$ and displays a touch-optimized hamburger toggle button opening a slide-down drawer with user profile badges, role-based navigation links, and full-width sign out actions.
+* **Responsive Grids**: `.grid-2`, `.grid-3`, and `.grid-4` automatically collapse to single columns on mobile devices (`\le 768\text{px}`) with compact margins.
+* **Table Horizontal Scrolling**: All data tables are wrapped in `.table-responsive` with `-webkit-overflow-scrolling: touch` and `min-width: 640px` to preserve column readability without squishing cells.
+* **Mobile Bottom-Sheet Modals**: On mobile viewports, modals dock cleanly from the bottom like native mobile applications with full-width stacked action buttons and scrollable bodies.
+* **iOS Safari Optimization**: Inputs, selects, and textareas enforce `16px` font size on small screens (`\le 480\text{px}`) to prevent automatic iOS zoom on input focus.
 
 ---
 
